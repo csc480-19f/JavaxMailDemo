@@ -1,11 +1,10 @@
-import java.util.Properties;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 import javax.mail.Folder;
 import javax.mail.Message;
 import javax.mail.MessagingException;
-import javax.mail.NoSuchProviderException;
-import javax.mail.Session;
 import javax.mail.Store;
 
 public class Main {
@@ -13,60 +12,104 @@ public class Main {
 	// https://www.tutorialspoint.com/javamail_api/javamail_api_checking_emails.htm
 	
 	public static void main(String[] args) {
-		String host = "pop.gmail.com";
-		String mailStoreType = "pop3";
-		
 		Scanner input = new Scanner(System.in);
-		
 		System.out.print("Email: ");
 		String username = input.nextLine();
-		System.out.println("Password:");
+		System.out.print("Password: ");
 		String password = input.nextLine();
 		
-		System.out.println("\n\n\n\n\n\n\n");
-		check(host, mailStoreType, username, password);
-	}
-
-	public static void check(String host, String storeType, String user, String password) {
+		Store store = Mailer.getStorage(username, password);
+		
+		readInboxAttributes(store);
+		testTime(store);
+		
 		try {
-			Properties properties = new Properties();
-			properties.put("mail.pop3.host", host);
-			properties.put("mail.pop3.port", "995");
-			properties.put("mail.pop3.starttls.enable", "true");
-			Session emailSession = Session.getDefaultInstance(properties);
-
-			Store store = emailSession.getStore("pop3s");
-			store.connect(host, user, password);
-
-			Folder emailFolder = store.getFolder("INBOX");
-			emailFolder.open(Folder.READ_ONLY);
-
-			Message[] messages = emailFolder.getMessages();
-
-			long timeBefore = System.currentTimeMillis();
-			
-			for (int i = 0, n = messages.length; i < n; i++) {
-				Message message = messages[i];
-				System.out.println("---------------------------------");
-				System.out.println("Email Number " + (i + 1));
-				System.out.println("Subject: " + message.getSubject());
-				System.out.println("From: " + message.getFrom()[0]);
-				System.out.println("Text: " + message.getContent().toString());
-			}
-			
-			long timeAfter = System.currentTimeMillis();
-
-			emailFolder.close(false);
 			store.close();
-			System.out.println("\n\nTime taken for " + messages.length + " emails: " + (timeAfter - timeBefore) + "ms");
-		} catch (NoSuchProviderException e) {
-			e.printStackTrace();
 		} catch (MessagingException e) {
 			e.printStackTrace();
-		} catch (Exception e) {
+		}
+		System.out.println("\n\n\n\n\n\n\n");
+		
+	}
+
+	private static void readInboxAttributes(Store store) {
+		try {
+			Folder inboxFolder = store.getFolder("INBOX");
+			inboxFolder.open(Folder.READ_ONLY);
+			
+			Message[] messages = inboxFolder.getMessages();
+			
+			// Just do attribute operation for ONE email
+			for (Message m : messages) {
+				System.out.println("---------------------------------");
+				System.out.println("Msg #: " + m.getMessageNumber());
+				System.out.println("Content: " + m.getContentType());
+				System.out.println("Description: " + m.getDescription());
+				System.out.println("Disposition: " + m.getDisposition());
+				System.out.println("File Name: " + m.getFileName());
+				System.out.println("Line Count: " + m.getLineCount());
+				System.out.println("Size: " + m.getSize());
+				System.out.println("Subject: " + m.getSubject());
+				System.out.println("Headers: " + m.getAllHeaders().toString());
+				System.out.println("Recipients: " + m.getAllRecipients().toString());
+				System.out.println("Data Handler: " + m.getDataHandler().toString());
+				System.out.println("Flags: " + m.getFlags());
+				System.out.println("From: " + m.getFrom().toString());
+				System.out.println("Folder: " + m.getFolder());
+				System.out.println("Attachment: " + m.ATTACHMENT);
+				System.out.println("Date Received: " + m.getReceivedDate());
+				System.out.println("Reply To: " + m.getReplyTo().toString());
+				System.out.println("Sent Date: " + m.getSentDate());
+				break;
+			}
+			
+			inboxFolder.close(false);
+			
+		} catch (MessagingException e) {
 			e.printStackTrace();
 		}
 	}
 
-}
+	private static void testTime(Store store) {
+		try {
+			Folder inboxFolder = store.getFolder("INBOX");
+			inboxFolder.open(Folder.READ_ONLY);
+			
+			Message[] messages = inboxFolder.getMessages();
 
+			List<Integer> sizes = new ArrayList<>();
+			List<Long> times = new ArrayList<>();
+			long tb = System.currentTimeMillis();
+			
+			for (Message m : messages) {
+				long current = System.currentTimeMillis();
+				System.out.println("---------------------------------");
+				System.out.println("Msg #: " + m.getMessageNumber());
+				System.out.println("Size: " + m.getSize());
+				long qTime = System.currentTimeMillis() - current;
+				System.out.println("Time: " + qTime + " ms");
+				sizes.add(m.getSize());
+				times.add(qTime);
+			}
+			
+			System.out.println("Time for " + messages.length + " email iteration (n): " + (System.currentTimeMillis() - tb) + " ms");
+			int avgSize = 0;
+			for (Integer i : sizes) {
+				avgSize += i;
+			}
+			int avgTime = 0;
+			for (Long i: times) {
+				avgTime += i;
+			}
+			System.out.println("Average email size: " + (avgSize / sizes.size()) + " bytes");
+			System.out.println("Average email time: " + (avgTime / times.size()) + " ms");
+			
+			inboxFolder.close(false);
+			
+		} catch (MessagingException e) {
+			e.printStackTrace();
+		}
+	}
+
+	
+}
