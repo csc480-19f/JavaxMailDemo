@@ -1,11 +1,15 @@
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
+import javax.mail.Flags;
 import javax.mail.Folder;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Store;
+import javax.mail.internet.MimeMessage;
+import javax.mail.search.FlagTerm;
 
 public class Main {
 
@@ -21,6 +25,7 @@ public class Main {
 		Store store = Mailer.getStorage(username, password);
 		
 		readInboxAttributes(store);
+		//testTimeAlt(store);
 		testTime(store);
 		
 		try {
@@ -107,6 +112,29 @@ public class Main {
 			inboxFolder.close(false);
 			
 		} catch (MessagingException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	// MIME MESSAGE REDUCE TIME?
+	//https://stackoverflow.com/questions/20237801/reading-from-javamail-takes-a-long-time
+	private static void testTimeAlt(Store store) {
+		Folder inboxFolder;
+		try {
+			inboxFolder = store.getFolder("INBOX");
+			inboxFolder.open(Folder.READ_ONLY);
+			
+			
+			MimeMessage[] messages = (MimeMessage[]) inboxFolder.search(new FlagTerm(new Flags(Flags.Flag.SEEN), true));
+			for (int i = 0 ; i< messages.length ; i++){
+			    MimeMessage cmsg = new MimeMessage(messages[i]);
+			    Object obj = cmsg.getContent(); 
+			    System.out.println(cmsg.getMessageNumber() + "_" + cmsg.getSubject().toString());
+			}
+		} catch (MessagingException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
